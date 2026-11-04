@@ -1,6 +1,6 @@
 ## What it does
 
-`codebase-design` fixes the words you use to design a module: **module**, **interface**, **depth**, **seam**, **adapter**, **leverage**, **locality**. It defines each one precisely, bans the loose substitutes ("component", "service", "API", "boundary"), and states the handful of principles that follow from them.
+`codebase-design` provides vocabulary for comparing module designs: **module**, **interface**, **depth**, **seam**, **adapter**, **leverage**, **locality**. Use these terms where they clarify the design while preserving the project's domain language and familiar terms such as service, API and boundary.
 
 It is a reference, not a process. It runs no loop, produces no artifact, and never stops to ask you a question. Every other skill that touches design uses its vocabulary. On its own, it gives you the words and stops. Know this before you invoke it. If you point a [session](https://www.aihero.dev/ai-coding-dictionary/session) at a skill with no process and no stopping rule and say "go", the agent invents a process. The questions below show what that looks like.
 
@@ -22,17 +22,17 @@ Several skills are close to it. Pick by the problem you have:
 
 ## The vocabulary
 
-The glossary is the skill. The skill defines every term against the others, and gives each one the word it replaces.
+The glossary defines how the terms relate. It supports a clear design conversation without prescribing every word in it.
 
-| Term | What it means | Don't say |
-|---|---|---|
-| **Module** | Anything with an interface and an implementation. Deliberately scale-agnostic: a function, a class, a package, a slice spanning tiers. | unit, component, service |
-| **Interface** | Everything a caller must know to use it correctly: the type signature, plus invariants, ordering constraints, error modes, required config, performance characteristics. | API, signature |
-| **Depth** | Leverage at the interface: how much behaviour a caller or a test can exercise per unit of interface they have to learn. **Deep**: a lot of behaviour behind a small interface. **Shallow**: the interface is nearly as complex as the implementation. | none |
-| **Seam** | Michael Feathers' term: a place you can alter behaviour without editing in that place. It is the *location* of an interface, and where to put it is its own decision, separate from what goes behind it. | boundary |
-| **Adapter** | A concrete thing satisfying an interface at a seam. It names a role, not a kind of thing: an in-memory fake and a Postgres repo are both adapters. | none |
-| **Leverage** | What callers get from depth: more capability per unit of interface learned. | none |
-| **Locality** | What maintainers get from depth: changes, bugs and verification stay in one place, so one fix covers every caller. | none |
+| Term | What it means |
+|---|---|
+| **Module** | Anything with an interface and an implementation. Deliberately scale-agnostic: a function, a class, a package, a slice spanning tiers. |
+| **Interface** | Everything a caller must know to use it correctly: the type signature, plus invariants, ordering constraints, error modes, required config, performance characteristics. |
+| **Depth** | Leverage at the interface: how much behaviour a caller or a test can exercise per unit of interface they have to learn. **Deep**: a lot of behaviour behind a small interface. **Shallow**: the interface is nearly as complex as the implementation. |
+| **Seam** | Michael Feathers' term: a place you can alter behaviour without editing in that place. It is the *location* of an interface, and where to put it is its own decision, separate from what goes behind it. |
+| **Adapter** | A concrete thing satisfying an interface at a seam. It names a role, not a kind of thing: an in-memory fake and a Postgres repo are both adapters. |
+| **Leverage** | What callers get from depth: more capability per unit of interface learned. |
+| **Locality** | What maintainers get from depth: changes, bugs and verification stay in one place, so one fix covers every caller. |
 
 The skill does *not* define depth as the ratio of implementation lines to interface lines, which is Ousterhout's own definition. That metric rewards padding the implementation, so the skill uses depth-as-leverage instead.
 
@@ -40,10 +40,10 @@ The skill does *not* define depth as the ratio of implementation lines to interf
 
 - **Depth is a property of the interface, not the implementation.** A deep module can be built internally from small swappable parts. Callers just don't see them. A module can have internal seams its own tests use, and one external seam at its interface.
 - **The deletion test.** Imagine deleting the module. If complexity disappears, the module was a pass-through. If it reappears across N callers, the module was hiding real complexity.
-- **The interface is the test surface.** Callers and tests cross the same seam. If you want to test *past* the interface, the module is the wrong shape.
-- **One adapter means a hypothetical seam. Two adapters means a real one.** Don't cut a seam until something varies across it. A single-adapter seam is just indirection.
+- **Prefer tests through the interface callers use.** Keep focused tests for internal rules when they expose failures more precisely.
+- **Justify a seam by the problem it solves.** Isolate actual variation or a difficult external dependency. Adapter count alone does not establish its value.
 
-Two supporting files go further, and the skill reads them on demand rather than up front. [DEEPENING.md](https://github.com/mattpocock/skills/blob/main/skills/engineering/codebase-design/DEEPENING.md) classifies a candidate's dependencies into four categories (in-process, local-substitutable, remote-but-owned, true-external), because the category decides how you test the deepened module across its seam. [DESIGN-IT-TWICE.md](https://github.com/mattpocock/skills/blob/main/skills/engineering/codebase-design/DESIGN-IT-TWICE.md) starts parallel [sub-agents](https://www.aihero.dev/ai-coding-dictionary/subagent) to produce three or more radically different interfaces for the same module, then compares them on depth, locality and seam placement.
+Two supporting files go further, and the skill reads them on demand rather than up front. [DEEPENING.md](https://github.com/mattpocock/skills/blob/main/skills/engineering/codebase-design/DEEPENING.md) classifies a candidate's dependencies into four categories (in-process, local-substitutable, remote-but-owned, true-external), to guide realistic testing across the seam. A category alone does not justify restructuring. Before tests are removed, their material assertions transfer to retained or replacement coverage. [DESIGN-IT-TWICE.md](https://github.com/mattpocock/skills/blob/main/skills/engineering/codebase-design/DESIGN-IT-TWICE.md) starts parallel [sub-agents](https://www.aihero.dev/ai-coding-dictionary/subagent) to produce three or more radically different interfaces for the same module, then compares them on depth, locality and seam placement.
 
 ## Common questions
 
@@ -73,14 +73,15 @@ Not cleanly. `DESIGN-IT-TWICE.md` says "spawn 3+ sub-agents in parallel using th
 
 **Can I add my own concepts to the glossary, such as connascence, module secrets, [progressive disclosure](https://www.aihero.dev/ai-coding-dictionary/progressive-disclosure)?**
 
-People have proposed those. [Issue #180](https://github.com/mattpocock/skills/issues/180) adds Parnas's module secrets and Page-Jones's connascence as a naming layer for *what* is leaking across a seam, with a working diff attached; [issue #303](https://github.com/mattpocock/skills/issues/303) proposes progressive disclosure inside the implementation, so a module that is deep at its public interface also has structure inside it. Both are open and unmerged. The shipped glossary is small on purpose, and the skill itself gives the reason: consistent language is the whole point, and a term nobody uses consistently is worse than no term.
+People have proposed those. [Issue #180](https://github.com/mattpocock/skills/issues/180) adds Parnas's module secrets and Page-Jones's connascence as a naming layer for *what* is leaking across a seam, with a working diff attached; [issue #303](https://github.com/mattpocock/skills/issues/303) proposes progressive disclosure inside the implementation, so a module that is deep at its public interface also has structure inside it. Both are open and unmerged. The shipped glossary stays small so its terms remain useful and easy to learn. Use them where they clarify the design rather than adding terminology for its own sake.
 
 ## It's working if
 
-- The design conversation stops producing the words "component", "service" and "boundary", and starts producing "module", "interface" and "seam".
+- The design conversation identifies a clear responsibility and a smaller interface while preserving the project's domain language.
 - Someone can point at a proposed extraction and say whether it passes the deletion test, without hedging.
-- A proposed seam comes with a second adapter named, not just the first one.
+- A proposed seam addresses a concrete variation, external dependency or testing difficulty.
 - Discussion of an interface covers invariants, ordering and error modes, not only the type signature.
+- A test cleanup preserves material assertions and demonstrates the relevant behaviour and failure paths.
 - Invoking it does not start a session. If the agent begins reading files and proposing refactors from `/codebase-design` alone, it has mistaken the reference for a driver.
 
 ## Where it fits
